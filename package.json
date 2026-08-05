@@ -1,0 +1,66 @@
+{
+  "name": "superbooks",
+  "version": "0.1.0",
+  "description": "Official SuperBooks SDK for Node.js and TypeScript",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "superbooks",
+    "accounting",
+    "invoicing",
+    "bookkeeping",
+    "sdk"
+  ],
+  "homepage": "https://github.com/DevinoSolutions/superbooks-node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevinoSolutions/superbooks-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DevinoSolutions/superbooks-node/issues"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "codegen": "tsx scripts/codegen.ts",
+    "codegen:check": "tsx scripts/codegen.ts --check",
+    "typecheck": "tsc --noEmit",
+    "leak-scan": "tsx scripts/leak-scan.ts",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm run leak-scan"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

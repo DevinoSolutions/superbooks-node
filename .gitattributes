@@ -1,0 +1,7 @@
+# Normalise line endings on checkin and check out LF everywhere.
+#
+# Without this, a clone on Windows with the default `core.autocrlf=true` gets
+# CRLF working-tree files. The codegen drift check compares generated output
+# byte-for-byte against the committed files, so CRLF makes every generated file
+# look modified and the check fails on a clean tree.
+* text=auto eol=lf

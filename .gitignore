@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Never let a real credential near the repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+.DS_Store

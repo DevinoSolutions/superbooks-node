@@ -1,0 +1,1964 @@
+{
+  "generatedAt": "2026-08-04T07:46:58.770Z",
+  "toolCount": 45,
+  "domains": {
+    "transactions": [
+      {
+        "name": "transactions_list",
+        "description": "List bank transactions for the current team, newest first. Supports cursor pagination plus filters by date range, status, category slug, and bank account. Pass the returned nextCursor to fetch the next page.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "Inclusive lower bound, YYYY-MM-DD",
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "to": {
+              "description": "Inclusive upper bound, YYYY-MM-DD",
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "status": {
+              "description": "Filter by workflow status",
+              "type": "string",
+              "enum": [
+                "posted",
+                "pending",
+                "excluded",
+                "completed",
+                "archived",
+                "exported"
+              ]
+            },
+            "category_slug": {
+              "description": "Filter by category slug",
+              "type": "string"
+            },
+            "bank_account_id": {
+              "description": "Filter by bank account ID",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "cursor": {
+              "description": "Pagination cursor returned by the previous call",
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "description": "Max items per page (1-100)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "transactions_get",
+        "description": "Fetch one transaction by ID with full details (counterparty, attachments, notes).",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Transaction ID"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "transactions_update_status",
+        "description": "Update the workflow status of one transaction (posted | pending | excluded | completed | archived | exported). Use 'archived' or 'excluded' for non-destructive removal — DO NOT use transactions_delete unless the user explicitly asks for permanent deletion.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Transaction ID"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "posted",
+                "pending",
+                "excluded",
+                "completed",
+                "archived",
+                "exported"
+              ],
+              "description": "New status to assign"
+            }
+          },
+          "required": [
+            "id",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "transactions_update_category",
+        "description": "Assign a category slug to a transaction. The slug must already exist in the team's categories table — call categories_list first if you're unsure of valid slugs.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Transaction ID"
+            },
+            "category_slug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Category slug — must exist in this team's categories"
+            }
+          },
+          "required": [
+            "id",
+            "category_slug"
+          ]
+        }
+      },
+      {
+        "name": "transactions_delete",
+        "description": "Permanently delete a transaction. Destructive — confirm with the user before calling. Use update_status to 'archived' or 'excluded' for non-destructive removal. Returns deleted: false if the transaction was already absent — does not throw.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Transaction ID. This action is permanent."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "invoices": [
+      {
+        "name": "invoices_list",
+        "description": "List invoices for the current team, ordered by created_at desc (newest first). Supports cursor pagination plus filters by status, date range (issue_date), and customer. Pass the returned nextCursor to fetch the next page.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by invoice status",
+              "type": "string",
+              "enum": [
+                "draft",
+                "overdue",
+                "paid",
+                "unpaid",
+                "canceled",
+                "scheduled",
+                "refunded"
+              ]
+            },
+            "from": {
+              "description": "Inclusive lower bound on issue_date, YYYY-MM-DD",
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "to": {
+              "description": "Inclusive upper bound on issue_date, YYYY-MM-DD",
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "customer_id": {
+              "description": "Filter by customer ID",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "cursor": {
+              "description": "Pagination cursor returned by the previous call",
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "description": "Max items per page (1-100)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "invoices_get",
+        "description": "Fetch one invoice with line items, customer, and totals.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Invoice ID"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "invoices_create_draft",
+        "description": "Create a draft invoice. Draft is not sent to the customer; user reviews and calls invoices_send to deliver.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "customer_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Customer ID — must already exist for this team"
+            },
+            "currency": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3,
+              "description": "3-letter currency code (e.g., USD, EUR)"
+            },
+            "issue_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Issue date, YYYY-MM-DD"
+            },
+            "due_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Due date, YYYY-MM-DD"
+            },
+            "line_items": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Line item name/description"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Quantity (must be > 0)"
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Unit price per item (>= 0)"
+                  }
+                },
+                "required": [
+                  "name",
+                  "quantity",
+                  "price"
+                ]
+              },
+              "description": "At least one line item; amount is computed from these"
+            },
+            "note": {
+              "description": "Optional note shown on the invoice",
+              "type": "string"
+            }
+          },
+          "required": [
+            "customer_id",
+            "currency",
+            "issue_date",
+            "due_date",
+            "line_items"
+          ]
+        }
+      },
+      {
+        "name": "invoices_send",
+        "description": "Mark a draft invoice as sent (status transitions draft -> unpaid; the schema does not have a 'sent' status). Triggers customer email delivery in the background. Throws if the invoice is not in 'draft' status.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Invoice ID to send"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "invoices_void",
+        "description": "Void an invoice (soft-cancel that preserves audit trail). Status becomes 'canceled' (the schema does not have a 'voided' status; canceled is the closest soft-cancel). Destructive — confirm with the user before calling. Throws if the invoice is not found OR is already canceled (so re-voiding never silently succeeds).",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Invoice ID to void"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "customers": [
+      {
+        "name": "customers_list",
+        "description": "List customers for the current team, newest first. Supports cursor pagination plus filters by name (partial, case-insensitive), email (partial, case-insensitive), tag id, and archived state. Pass the returned nextCursor to fetch the next page.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Partial, case-insensitive match against the customer name",
+              "type": "string"
+            },
+            "email": {
+              "description": "Partial, case-insensitive match against the customer email",
+              "type": "string"
+            },
+            "tag_id": {
+              "description": "Only return customers linked to this tag id. Use tags_list to find tag ids.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "is_archived": {
+              "description": "If true, only archived customers. If false, only non-archived (default behavior shows all).",
+              "type": "boolean"
+            },
+            "cursor": {
+              "description": "Pagination cursor returned by the previous call",
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "description": "Max items per page (1-100)",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "customers_get",
+        "description": "Fetch one customer by ID with full billing/shipping details, tags, and invoice/project counts. Returns null if not found for the current team.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Customer ID"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "customers_create",
+        "description": "Create a new customer for the current team. Name and email are required; billing/shipping address fields and tags are optional. To assign tags, pass an array of existing tag ids (use tags_list/tags_create from the tags domain to manage them — this tool does NOT create new tags).",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Customer or organization name (e.g., 'Acme Corporation')"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+              "description": "Primary email address of the customer"
+            },
+            "billingEmail": {
+              "description": "Billing email address(es). Comma-separate multiple values (e.g., 'finance@acme.com, ap@acme.com').",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone": {
+              "description": "Primary phone number",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "website": {
+              "description": "Website URL (e.g., 'https://acme.com')",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contact": {
+              "description": "Primary contact person's name at the customer organization",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "description": "Internal team-facing note about this customer",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "vatNumber": {
+              "description": "VAT (Value Added Tax) number",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "country": {
+              "description": "Country name (e.g., 'United States')",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "countryCode": {
+              "description": "Country code in ISO 3166-1 alpha-2 format (e.g., 'US')",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "addressLine1": {
+              "description": "First line of the customer's address",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "addressLine2": {
+              "description": "Second line of the customer's address (suite, apartment, etc.)",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "city": {
+              "description": "City",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "description": "State or province",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "zip": {
+              "description": "ZIP or postal code",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "preferred_currency": {
+              "description": "3-letter ISO currency code used as default for new invoices (e.g., 'USD'). Will be uppercased.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "default_payment_terms": {
+              "description": "Default payment terms in days used when generating invoices (e.g., 30 for net-30).",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tag_ids": {
+              "description": "Array of existing tag ids to link to this customer. Tags must already exist for the team.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "email"
+          ]
+        }
+      },
+      {
+        "name": "customers_update",
+        "description": "Update one customer. Only the fields you pass are modified — other fields are left untouched. Set is_archived=true to archive (recommended over customers_delete for soft removal). If tag_ids is provided, it FULLY REPLACES the existing tag set: tags not in the array are unlinked. Omit tag_ids entirely to leave tags untouched.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Customer ID to update"
+            },
+            "name": {
+              "description": "New customer name",
+              "type": "string",
+              "minLength": 1
+            },
+            "email": {
+              "description": "New primary email",
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "billingEmail": {
+              "description": "Billing email(s). Pass null to clear. Comma-separate for multiple.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone": {
+              "description": "Phone number. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "website": {
+              "description": "Website URL. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contact": {
+              "description": "Primary contact name. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "description": "Internal team-facing note. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "vatNumber": {
+              "description": "VAT number. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "country": {
+              "description": "Country name. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "countryCode": {
+              "description": "Country code in ISO 3166-1 alpha-2 format. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "addressLine1": {
+              "description": "Address line 1. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "addressLine2": {
+              "description": "Address line 2. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "city": {
+              "description": "City. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "description": "State or province. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "zip": {
+              "description": "ZIP/postal code. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "preferred_currency": {
+              "description": "3-letter ISO currency code (uppercased). Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 3
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "default_payment_terms": {
+              "description": "Default payment terms in days for new invoices. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "is_archived": {
+              "description": "Archive (true) or restore (false) the customer. Archived customers are hidden from default lists.",
+              "type": "boolean"
+            },
+            "tag_ids": {
+              "description": "REPLACES the customer's tag set. Pass [] to clear all tags. Omit this field to leave existing tags untouched. Tags must already exist for the team.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "customers_delete",
+        "description": "Permanently delete a customer. DESTRUCTIVE: also permanently deletes all tracker projects belonging to this customer, and unlinks the customer from invoices and recurring-invoice schedules (those financial records are kept, but lose their customer link). Confirm with the user explicitly. Prefer customers_update with is_archived=true unless the customer must be removed for compliance reasons. Returns deleted: false if the customer was already absent — does not throw.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Customer ID. This action is permanent."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "categories": [
+      {
+        "name": "categories_list",
+        "description": "List all transaction categories for the current team. Returns a FLAT array (not hierarchical) — each row includes parent_id so the caller can reconstruct the parent/child tree if needed. System categories (system: true) are included; they cannot be updated or deleted. Ordered by system DESC, name ASC. No pagination — the full category catalog is typically small.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "categories_create",
+        "description": "Create a new transaction category for the current team. Name is required; all other fields are optional. The slug is derived from the name (lowercase, non-alphanumeric -> underscore, capped at 64 chars). Slugs must be unique per team — creating a category with a name that slugifies to an existing slug will throw a unique-constraint error. To nest under a parent, pass parent_id (the UUID id of an existing category). Returns the created row.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Human-readable category name (e.g., 'Office Supplies'). The slug is auto-generated from this — pick something stable."
+            },
+            "color": {
+              "description": "Optional hex color for UI display (e.g., '#FF0000'). Pass null or omit if not needed.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": {
+              "description": "Optional free-text description of what this category covers (helps the LLM auto-classify transactions).",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "parent_id": {
+              "description": "Optional UUID id of a parent category to nest under. Pass null or omit for a top-level category. Use categories_list to find existing category ids.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tax_rate": {
+              "description": "Optional tax rate as a percentage (e.g., 7.5 for 7.5%). Stored with 2-decimal precision.",
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tax_type": {
+              "description": "Optional tax type code (e.g., 'GST', 'VAT', 'sales_tax').",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tax_reporting_code": {
+              "description": "Optional reporting/jurisdiction code for the tax authority's tax line.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "excluded": {
+              "description": "If true, transactions in this category are excluded from financial reports (e.g., transfers between own accounts). Defaults to false.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "categories_update",
+        "description": "Update one transaction category. Only the fields you pass are modified; omit a field to leave it untouched. REFUSES to update a system category (system: true). REFUSES to change parent_id on a category that has children — re-nest the children first. The slug is NOT updatable (it is part of the composite primary key); to rename, create a new category and migrate transactions. Returns updated: true on success.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Category id (UUID) to update. Use categories_list to find it."
+            },
+            "name": {
+              "description": "New human-readable name. The slug does NOT change when name changes.",
+              "type": "string",
+              "minLength": 1
+            },
+            "color": {
+              "description": "Hex color for UI display. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": {
+              "description": "Free-text description. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "parent_id": {
+              "description": "Parent category UUID id. Pass null to make top-level. Refused if this category already has children.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tax_rate": {
+              "description": "Tax rate percentage (e.g., 7.5 for 7.5%). Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tax_type": {
+              "description": "Tax type code (e.g., 'GST', 'VAT'). Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tax_reporting_code": {
+              "description": "Reporting/jurisdiction code. Pass null to clear.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "excluded": {
+              "description": "If true, this category is excluded from financial reports. Pass null to revert to default (false).",
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "categories_delete",
+        "description": "Permanently delete a transaction category. DESTRUCTIVE. REFUSES if the category is a system category (system: true). REFUSES if any transactions still reference the category (by slug) — re-categorize or delete those transactions first, then retry. Side-effects on success: any saved enrichment rules that reference this category are also deleted. Child categories are NOT auto-deleted and will keep pointing at the removed parent — re-nest or delete the children first if that matters. Returns deleted: false if the category was not found OR was refused; an error is thrown for refusals so the caller can distinguish. Confirm with the user before calling.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Category id (UUID) to delete. This action is permanent."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "tags": [
+      {
+        "name": "tags_list",
+        "description": "List all tags for the current team, ordered by name ascending. Tags are simple {id, name} labels that can be attached to customers, transactions, and tracker projects via their respective tools. No pagination — the tag catalog is typically small.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "tags_create",
+        "description": "Create a new tag for the current team. Names are unique per team — creating a tag whose name already exists throws a clear error (the caller should reuse the existing tag id from tags_list). Tags are minimal: only a name is stored (no color, no description). Returns {id, name}.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Tag name (e.g., 'urgent', 'project-acme'). Must be unique within the team."
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "tags_delete",
+        "description": "Permanently delete a tag. DESTRUCTIVE: also removes this tag from every customer, transaction, and tracker project it is attached to. Those customers, transactions, and tracker projects themselves are NOT affected, only their tag links. There is no soft-delete/archive for tags. Returns {id, deleted: true, name} on success, or {id, deleted: false} if the tag was not found for this team. Confirm with the user before calling.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Tag id (UUID) to delete. This action is permanent."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "documents": [
+      {
+        "name": "documents_list",
+        "description": "List documents (uploaded files in the vault) for the current team, newest first. Excludes folder placeholders (`*.folderPlaceholder`). Supports filter by tag IDs, date range, and a free-text query `q` (case-insensitive substring match on name only). For phrase, fuzzy, or typo-tolerant text search, use `documents_search`. Cursor pagination: pass the `cursor` from the previous page to get the next one.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "q": {
+              "description": "Case-insensitive substring match on the document name only. For typo-tolerant full-text search, use `documents_search` instead.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "description": "Filter to documents that have ANY of these tag IDs.",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "start": {
+              "description": "Inclusive lower bound on the document's `date` (YYYY-MM-DD). Both `start` and `end` must be provided together to take effect.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "end": {
+              "description": "Inclusive upper bound on the document's `date` (YYYY-MM-DD). Both `start` and `end` must be provided together to take effect.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cursor": {
+              "description": "Pagination cursor from the previous page's `cursor`. Omit on the first page.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pageSize": {
+              "default": 20,
+              "description": "Number of documents per page (1-100). Defaults to 20.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "documents_get",
+        "description": "Fetch one document by id with the full row including OCR-extracted text (`body`, `content`), title/summary, `tag`, `language`, processing status, and assigned tag IDs. Returns null if not found for the current team.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Document id (UUID)."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "documents_search",
+        "description": "Full-text search documents by phrase, with substring and typo-tolerant matching on the document name. Use this (not `documents_list`) when the user asks to find documents by phrase, invoice number, vendor name, etc. — it handles typos and partial matches. Returns one page of results newest first by `created_at`; pass the returned `cursor` to fetch more.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "q": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Free-text query — words are matched as prefix terms with English-language stemming, plus substring and fuzzy matching on the document name to catch near-miss spellings."
+            },
+            "start": {
+              "description": "Optional inclusive lower bound on the document's `date` (YYYY-MM-DD). Both `start` and `end` must be provided together to filter by date.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "end": {
+              "description": "Optional inclusive upper bound on the document's `date` (YYYY-MM-DD). Both `start` and `end` must be provided together to filter by date.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "description": "Optional list of tag IDs — narrows results to documents that have ANY of these tags assigned.",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cursor": {
+              "description": "Pagination cursor from the previous page's `cursor`. Omit on the first page.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pageSize": {
+              "default": 20,
+              "description": "Number of documents per page (1-100). Defaults to 20.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "q"
+          ]
+        }
+      },
+      {
+        "name": "documents_delete",
+        "description": "Permanently delete a document by id. DESTRUCTIVE. Side-effects: (a) all tag assignments for this document are removed; (b) any transaction attachments that reference this document's stored file are also deleted, so the file stops appearing on those transactions; (c) the underlying stored file is permanently deleted. Returns `deleted: false` if the document was not found for this team — does not throw. Confirm with the user before calling.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Document id (UUID) to delete. This action is permanent."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "inbox": [
+      {
+        "name": "inbox_list",
+        "description": "List inbox items (uploaded receipts / forwarded invoices) for the current team, newest first. EXCLUDES soft-deleted items (`status='deleted'`) and grouped follow-ups, so each primary item appears once. Filter by exact status and/or a free-text query `q` (matches `display_name` / `file_name` / `description`; numeric `q` also matches `amount` within +/- 10% tolerance). Cursor pagination: pass the `cursor` from the previous page to get the next one.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by exact inbox_status. Common values: 'pending' (awaiting action), 'done' (matched), 'suggested_match' (auto-matched, needs confirm), 'no_match' (no candidate transaction). Omit to see everything except deleted.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "processing",
+                    "pending",
+                    "archived",
+                    "new",
+                    "analyzing",
+                    "suggested_match",
+                    "no_match",
+                    "done",
+                    "deleted",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "q": {
+              "description": "Free-text query — substring-matches `display_name` / `file_name` / `description`, case-insensitively. If parseable as a number, ALSO matches inbox items with `amount` within +/- 10% of that value.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cursor": {
+              "description": "Pagination cursor from the previous page's `cursor`. Omit on the first page.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pageSize": {
+              "default": 20,
+              "description": "Items per page (1-100). Defaults to 20.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "inbox_match",
+        "description": "Link an inbox item (receipt / invoice) to a bank transaction. NOT a simple flag flip — this: (a) attaches each grouped sibling to the same transaction; (b) copies `tax_amount` / `tax_rate+tax_type` from the inbox item onto the transaction (only if the inbox has them); (c) sets each linked inbox item's `status='done'` and stores its `attachment_id` + `transaction_id`. IDEMPOTENT when the item is already matched to the SAME transaction. Throws if the item is already matched to a DIFFERENT transaction, if any grouped sibling is matched to a different txn, or if the target transaction does not exist for this team.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Inbox item id (UUID). If this is a grouped follow-up, the entire group is matched together."
+            },
+            "transactionId": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Target transaction id (UUID). Must belong to the same team or the operation throws."
+            }
+          },
+          "required": [
+            "id",
+            "transactionId"
+          ]
+        }
+      },
+      {
+        "name": "inbox_delete",
+        "description": "SOFT-DELETE an inbox item — sets `status='deleted'` and clears its `transaction_id` / `attachment_id`; the item itself is retained, not removed. DESTRUCTIVE because it irreversibly: (a) detaches the item from its linked transaction, deleting that attachment; (b) RESETS the linked transaction's `tax_rate` and `tax_type` to NULL if that was its only attachment; (c) discards any pending match suggestions for this inbox item. The uploaded file itself is retained. Returns `deleted: false` if the inbox item was not found for this team — does not throw. Confirm with the user before calling.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Inbox item id (UUID) to soft-delete. This action's side-effects on linked transactions are irreversible."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "tracker": [
+      {
+        "name": "tracker_list_projects",
+        "description": "List tracker projects for the current team, newest first. Use this to discover project ids before starting timers or pulling entries. Supports filter by customer id and status (`in_progress` / `completed`). Each row includes the project's customer (id+name) when set. Cursor pagination: pass the `cursor` from the previous page to get the next one.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "customer_id": {
+              "description": "Filter to projects belonging to this customer id. Omit to include projects for all customers.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "description": "Filter by `trackerStatus`: `in_progress` (active) or `completed`. Omit to return both.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "in_progress",
+                    "completed"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cursor": {
+              "description": "Pagination cursor from the previous page's `cursor`. Omit on the first page.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "limit": {
+              "default": 25,
+              "description": "Max items per page (1-100). Defaults to 25.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "tracker_list_entries",
+        "description": "List tracker time entries for the current team across a date range, newest first. Default scope is the CURRENT USER's entries — pass `assigned_id: null` to see every teammate. Date range filters the `date` field (the timesheet date) — both `from` and `to` must be provided together (inclusive). Filter by `project_id` to restrict to one project. `duration` is in seconds. Cursor pagination: pass the `cursor` from the previous page to get the next one.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "Inclusive lower bound on the entry's `date` (YYYY-MM-DD). Both `from` and `to` must be provided together to take effect.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "to": {
+              "description": "Inclusive upper bound on the entry's `date` (YYYY-MM-DD). Both `from` and `to` must be provided together to take effect.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "project_id": {
+              "description": "Filter to entries for this tracker project id. Omit to include all projects.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "assigned_id": {
+              "description": "Filter to entries assigned to this user id. Defaults to the CURRENT USER. Pass `null` explicitly to disable the filter and return entries from every teammate.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cursor": {
+              "description": "Pagination cursor from the previous page's `cursor`. Omit on the first page.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "limit": {
+              "default": 50,
+              "description": "Max items per page (1-100). Defaults to 50.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "tracker_start_timer",
+        "description": "Start a tracker timer for the current user on a project. Automatically STOPS any timer the user already has running TODAY before creating the new one (mirrors the canonical web behavior — only one running timer per user per day). `start` defaults to now; `assigned_id` defaults to the current user. Returns the newly created entry. Use `tracker_stop_timer` to close it.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Tracker project id to log time against. Required. Look up ids via `tracker_list_projects`."
+            },
+            "description": {
+              "description": "Free-text description of what's being worked on. Optional — can be filled in later via the canonical upsert flow.",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "start": {
+              "description": "ISO 8601 datetime to use as the start moment. Defaults to NOW. Use this only when backfilling a timer that started slightly earlier.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "assigned_id": {
+              "description": "User id to assign the timer to. Defaults to the current user. Only set when logging time on behalf of a teammate.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "project_id"
+          ]
+        }
+      },
+      {
+        "name": "tracker_stop_timer",
+        "description": "Stop the current user's running tracker timer (or a specific entry by id). If duration is under 60 seconds, the entry is DELETED as an accidental tap — the response sets `discarded: true`. Otherwise the entry is updated with `stop` and `duration` (seconds). `entry_id` is optional — when omitted, finds the user's running timer for TODAY. Throws if no running timer exists, the entry is already stopped, or the entry has no `start`.",
+        "scope": "write",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "entry_id": {
+              "description": "Specific tracker entry id to stop. Omit to auto-stop the current user's running timer for today.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "stop": {
+              "description": "ISO 8601 datetime to use as the stop moment. Defaults to NOW. Set when correcting a timer's stop time.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "assigned_id": {
+              "description": "User id whose timer to stop. Defaults to the current user. Only set when stopping a teammate's timer.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "tracker_delete_entry",
+        "description": "Permanently delete a tracker time entry. DESTRUCTIVE — confirm with the user before calling. Deleting an entry has no knock-on effects — the projects, customers, and invoices it relates to are left untouched. Returns deleted: false if the entry was already absent — does not throw.",
+        "scope": "destructive",
+        "destructive": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Tracker entry id (UUID). This action is permanent."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "bank_accounts": [
+      {
+        "name": "bank_accounts_list",
+        "description": "List bank accounts for the current team with the connected institution's name + logo when available. Use this to discover bank account ids before listing transactions, attaching payment info to an invoice, etc. Supports filter by `enabled` (active accounts only) and `manual` (user-created vs. provider-synced). Does NOT decrypt IBAN / account numbers — those require a separate explicit reveal action.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "Filter by enabled state. `true` returns only active accounts; `false` returns disabled ones. Omit to include both.",
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "manual": {
+              "description": "Filter by source. `true` returns only manually created accounts; `false` returns only provider-synced (Plaid/GoCardless/Teller/EnableBanking) accounts. Omit to include both.",
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "team": [
+      {
+        "name": "team_get",
+        "description": "Get the current team's metadata: name, logo, base currency, country, fiscal year start, subscription plan + status, inbox id/email, and Stripe Connect status. The team is implicit (resolved from the authenticated request context) — no arguments. Returns null if the team has been deleted underneath the session.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ],
+    "search": [
+      {
+        "name": "search_global",
+        "description": "Cross-entity full-text search over transactions, invoices, customers, documents, and inbox items for the current team. Tokenizes the free-text query into prefix terms combined with AND (`foo bar` matches records containing a word starting with `foo` AND a word starting with `bar`) and ranks results by relevance. Use when the user asks an open-ended 'find anything mentioning X' question; for entity-specific search prefer the per-domain tools (`documents_search`, etc.). Returns an array of `{ id, type, relevance, created_at, data }` rows — `data` carries entity-specific fields for rendering without an extra fetch.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Free-text query. Words are matched as prefix terms combined with AND, using English-language stemming."
+            },
+            "limit": {
+              "default": 30,
+              "description": "Maximum total results across all entity types (1-100). Defaults to 30.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "per_table_limit": {
+              "default": 10,
+              "description": "Maximum matches per entity type before results are merged and ranked (1-50). Defaults to 10.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "relevance_threshold": {
+              "default": 0.01,
+              "description": "Minimum relevance score (0-1) for a row to be returned. Defaults to 0.01.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    ],
+    "reports": [
+      {
+        "name": "reports_burn_rate",
+        "description": "Monthly burn (total expenses) for the current team over a date range, expressed in the team's base currency. Each row reports a `YYYY-MM` month label, the absolute sum of negative-amount transactions in that month, and the base currency code. Also returns the simple arithmetic mean across the returned months (`average`). Cross-currency transactions are excluded so the monthly series is apples-to-apples. Use this when the user asks 'what's my burn', 'how much did I spend per month', or wants a trend chart of expenses.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive lower bound on transaction `date` (YYYY-MM-DD). Months are bucketed at calendar boundaries — partial months are included with whatever transactions fall in the window."
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive upper bound on transaction `date` (YYYY-MM-DD)."
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ]
+        }
+      },
+      {
+        "name": "reports_runway",
+        "description": "Months of runway based on current cash position and average monthly burn over the last 6 calendar months — all expressed in the team's base currency. Returns `{ months, cash, avg_burn, currency }`. `months` is `null` (not Infinity) when `avg_burn` is zero, so downstream JSON renders are safe. Cross-currency cash AND cross-currency expenses are EXCLUDED to keep the ratio coherent. Use when the user asks 'how long can we last', 'what's my runway', or any survival-time question. For per-currency cash positions use `reports_balance`; for the monthly burn series itself use `reports_burn_rate`.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "reports_profit_loss",
+        "description": "Monthly profit & loss for the current team over a date range — revenue (positive transactions), expense (absolute value of negative transactions), and delta (revenue - expense) per `YYYY-MM` month. Also returns aggregate totals across the range. All values are in the team's base currency; cross-currency transactions are excluded. Use when the user asks 'show my P&L', 'am I profitable', or wants a profit/expense breakdown by month.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive lower bound on transaction `date` (YYYY-MM-DD). Months are bucketed at calendar boundaries."
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive upper bound on transaction `date` (YYYY-MM-DD)."
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ]
+        }
+      },
+      {
+        "name": "reports_revenue",
+        "description": "Monthly revenue for the current team over a date range — the sum of POSITIVE-amount transactions per `YYYY-MM` month, in the team's base currency. Also returns the grand total. Cross-currency transactions are excluded. This is cash-in revenue (the bank-ledger view); for invoiced revenue by customer use `reports_top_customers` instead. Use when the user asks 'show revenue', 'how much did I make', or wants a revenue trend chart.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive lower bound on transaction `date` (YYYY-MM-DD)."
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive upper bound on transaction `date` (YYYY-MM-DD)."
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ]
+        }
+      },
+      {
+        "name": "reports_spending",
+        "description": "Spending grouped by transaction category for the current team over a date range. Sums absolute value of negative-amount transactions per `category_slug` in the team's base currency, sorted by amount descending. Uncategorized transactions are EXCLUDED from both the breakdown and the `total` (so the total matches the sum of the array). Cross-currency transactions are excluded. Use when the user asks 'where is my money going', 'spending by category', or wants a category-level expense breakdown. For a time-series view use `reports_burn_rate`.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive lower bound on transaction `date` (YYYY-MM-DD)."
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Inclusive upper bound on transaction `date` (YYYY-MM-DD)."
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ]
+        }
+      },
+      {
+        "name": "reports_balance",
+        "description": "Sum of bank account balances grouped by currency for the current team. Returns one entry per distinct currency among ENABLED accounts (disabled / connection-paused accounts are excluded). Each entry's `amount` is the raw stored balance — no FX conversion is applied, so callers should not naively add across currencies. Use this when the user asks 'how much cash do I have', 'show my balances', or anything cash-position related. For a single-number runway calculation in the team's base currency, use `reports_runway` instead.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "reports_top_customers",
+        "description": "Top customers by paid invoice revenue for the current team, sorted descending. Groups by `(customer_id, currency)` so a customer billed in two currencies appears as two rows — currencies are kept separate to avoid silent FX mixing. Only `status = 'paid'` invoices contribute. Date range filters on `paid_at` (cash receipt date); omit both `from` and `to` for all-time totals. `customer_name` is denormalized from the customers table; if the invoice references a deleted customer the name will be null. Use when the user asks 'who are my best customers', 'top revenue contributors', or 'biggest accounts'.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "Inclusive lower bound on invoice `paid_at` (YYYY-MM-DD). Omit to disable the lower bound.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "to": {
+              "description": "Inclusive upper bound on invoice `paid_at` (YYYY-MM-DD). Omit to disable the upper bound.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "limit": {
+              "default": 10,
+              "description": "Maximum number of (customer, currency) rows to return (1-100). Defaults to 10.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      {
+        "name": "reports_recurring_expenses",
+        "description": "Heuristically detected recurring expenses for the current team. A counterparty (vendor) is flagged when it appears in at least 3 of the last 6 calendar months with negative-amount transactions in the team's base currency. Returns `{ counterparty, months, avg_amount, currency }` per match, sorted by `months` desc then `avg_amount` desc. `months` is the count of distinct months the counterparty appeared in (max 6). NULL counterparties are skipped. Use when the user asks 'what subscriptions am I paying for', 'recurring bills', or wants to audit ongoing vendor spend.",
+        "scope": "read",
+        "destructive": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
+  }
+}

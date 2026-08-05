@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Fails if src/generated is out of date with sdk-manifest.json.
+      - name: Codegen drift
+        run: npm run codegen:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Runs after the build so it can scan dist/, including the sourcemaps —
+      # they embed full source text, so a stale build can still carry strings
+      # the sources no longer contain.
+      - name: Leak scan (no SuperBooks internals in shipped output)
+        run: npm run leak-scan
+
+      - name: Verify the published tarball
+        run: npm pack --dry-run

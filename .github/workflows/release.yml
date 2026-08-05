@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  # Required for npm trusted publishing: lets the job mint the OIDC token npm
+  # verifies instead of a long-lived publish token.
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Trusted publishing requires Node >= 22.14.0.
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted publishing requires npm >= 11.5.1, newer than the bundled CLI.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Check the tag matches the declared version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          SRC="$(node -p "require('fs').readFileSync('src/version.ts','utf8').match(/VERSION = \"(.*)\"/)[1]")"
+          echo "tag=$TAG package.json=$PKG src/version.ts=$SRC"
+          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$SRC" ]; then
+            echo "::error::version mismatch — tag $TAG, package.json $PKG, src/version.ts $SRC"
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run codegen:check
+      - run: npm test
+      - run: npm run build
+
+      # No --provenance flag: trusted publishing attaches provenance on its own.
+      - name: Publish
+        run: npm publish --access public
