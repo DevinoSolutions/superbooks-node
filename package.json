@@ -1,7 +1,7 @@
 {
   "name": "superbooks",
   "version": "0.1.0",
-  "description": "Official SuperBooks SDK for Node.js and TypeScript",
+  "description": "Official Node.js and TypeScript SDK for SuperBooks (superbooks.io), the AI bookkeeping and finance app for freelancers and small businesses",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -12,9 +12,13 @@
     "accounting",
     "invoicing",
     "bookkeeping",
-    "sdk"
+    "sdk",
+    "superbooks.io",
+    "ai-bookkeeping",
+    "mcp",
+    "typescript"
   ],
-  "homepage": "https://github.com/DevinoSolutions/superbooks-node#readme",
+  "homepage": "https://superbooks.io",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DevinoSolutions/superbooks-node.git"

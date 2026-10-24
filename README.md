@@ -2,6 +2,17 @@
 
 Official SuperBooks SDK for Node.js and TypeScript.
 
+> SuperBooks is an AI-native finance operating system for freelancers and small service
+> businesses. It connects to your bank read-only through Plaid, categorizes transactions with AI,
+> captures receipts from uploads, tracks time, sends invoices, and marks an invoice paid when a
+> deposit for its amount and currency lands in your bank. It works for businesses in the United
+> States and Canada.
+
+**What it is not:** SuperBooks is not a bank and never moves money (its bank access is read-only),
+and it does not prepare or file tax forms.
+
+Website: [superbooks.io](https://superbooks.io) · Docs: [docs.superbooks.io](https://docs.superbooks.io)
+
 A typed client for the SuperBooks API — 45 operations covering transactions, invoices, customers,
 documents, time tracking, and reports, exposed as per-domain methods like
 `sb.invoices.list({ status: "unpaid" })`.
