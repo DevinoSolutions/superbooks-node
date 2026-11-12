@@ -167,13 +167,13 @@ await sb.tools.call("some_new_tool", { foo: 1 }); // call anything by wire name
 ## Using SuperBooks from an AI client
 
 This package is for writing code. If instead you want an AI client to call SuperBooks as a tool
-provider, connect it straight to the hosted server at `https://api.superbooks.io/mcp` — no
+provider, connect it straight to the hosted server at `https://app.superbooks.io/mcp` — no
 installation required, and it supports the OAuth sign-in flow.
 
 **claude.ai / Claude Desktop connectors**, and **Claude Code**:
 
 ```sh
-claude mcp add --transport http superbooks https://api.superbooks.io/mcp \
+claude mcp add --transport http superbooks https://app.superbooks.io/mcp \
   --header "Authorization: Bearer sb_your_api_key_here"
 ```
 
